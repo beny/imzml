@@ -140,6 +140,111 @@ module ImzML
       end
       # p @metadata.software if name == :softwareList
       
+      if name == :cvParam && @stack.last == :scanSettings
+        scan_settings = (@metadata.scan_settings ||= Hash.new)
+        setting = (scan_settings[@elements.last[:id].to_sym] ||= ScanSettings.new)
+        
+        cv = @obo[element[:cvRef]]
+        stanza = cv.stanza(element[:accession])
+        parent_id = stanza.parent_id
+        
+        case element[:cvRef]
+        when "IMS"
+          
+          # detect correct line scan direction
+          setting.line_scan_direction = case stanza.id
+          when ScanSettings::LINE_SCAN_BOTTOM_UP
+            :bottom_up
+          when ScanSettings::LINE_SCAN_LEFT_RIGHT
+            :left_right
+          when ScanSettings::LINE_SCAN_RIGHT_LEFT
+            :right_left
+          when ScanSettings::LINE_SCAN_TOP_DOWN
+            :top_down
+          else
+            setting.line_scan_direction
+          end
+          
+          # detect scan direction
+          setting.scan_direction = case stanza.id
+          when ScanSettings::BOTTOM_UP
+            :bottom_up
+          when ScanSettings::LEFT_RIGHT
+            :left_right
+          when ScanSettings::RIGHT_LEFT
+            :right_left
+          when ScanSettings::TOP_DOWN
+            :top_down
+          else
+            setting.scan_direction
+          end
+          
+          # detect scan pattern
+          setting.scan_pattern = case stanza.id
+          when ScanSettings::MEANDERING
+            :meandering
+          when ScanSettings::ONE_WAY
+            :one_way
+          when ScanSettings::RANDOM_ACCESS
+            :random_access
+          when ScanSettings::FLY_BACK
+            :fly_back
+          else
+            setting.scan_pattern
+          end
+          
+          # detect scan type
+          setting.scan_type = case stanza.id
+          when ScanSettings::HORIZONTAL_LINE_SCAN
+            :horizontal
+          when ScanSettings::VERTICAL_LINE_SCAN
+            :vertical
+          else
+            setting.scan_type
+          end
+          
+          # detect image properties
+          image = (setting.image ||= ImzML::Image.new)
+          
+          case stanza.id
+          when ScanSettings::MAX_DIMENSION_X
+            point = (image.max_dimension ||= ImzML::Point.new)
+            point.x = element[:value].to_i  
+          when ScanSettings::MAX_DIMENSION_Y
+            point = (image.max_dimension ||= ImzML::Point.new)
+            point.y = element[:value].to_i
+          when ScanSettings::MAX_COUNT_OF_PIXEL_X
+            point = (image.max_pixel_count ||= ImzML::Point.new)
+            point.x = element[:value].to_i
+          when ScanSettings::MAX_COUNT_OF_PIXEL_Y
+            point = (image.max_pixel_count ||= ImzML::Point.new)
+            point.y = element[:value].to_i
+          when ScanSettings::PIXEL_SIZE_X
+            point = (image.pixel_size ||= ImzML::Point.new)
+            point.x = element[:value].to_i
+          when ScanSettings::PIXEL_SIZE_Y
+            point = (image.pixel_size ||= ImzML::Point.new)
+            point.y = element[:value].to_i
+          end
+        end
+        
+        # [
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000401", :name=>"top down", :value=>""},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000413", :name=>"flyback", :value=>""},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000480", :name=>"horizontal line scan", :value=>""},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000491", :name=>"linescan left right", :value=>""},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000042", :name=>"max count of pixel x", :value=>"3"},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000043", :name=>"max count of pixel y", :value=>"3"},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000044", :name=>"max dimension x", :value=>"300", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000045", :name=>"max dimension y", :value=>"300", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000046", :name=>"pixel size x", :value=>"100", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
+        #   {:cvRef=>"IMS", :accession=>"IMS:1000047", :name=>"pixel size y", :value=>"100", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
+        #   {:cvRef=>"MS", :accession=>"MS:1000836", :name=>"dried dropplet", :value=>""},
+        #   {:cvRef=>"MS", :accession=>"MS:1000835", :name=>"matrix solution concentration", :value=>"10"},
+        #   {:cvRef=>"MS", :accession=>"MS:1000834", :name=>"matrix solution", :value=>"DHB"}
+        # ]
+      end
+      # p @metadata.scan_settings if name == :scanSettingsList
 
       # p "#{name} ended #{element}"
 

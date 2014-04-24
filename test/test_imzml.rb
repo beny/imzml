@@ -68,4 +68,36 @@ class TestImzml < Minitest::Test
     assert_equal("1.0", software.last[:version])
   end
 
+  def test_scan_settins
+    settings = parser.metadata.scan_settings[:scansettings1]
+    assert_equal(3, settings.image.max_pixel_count.x, "Max count pixel x does not match")
+    assert_equal(3, settings.image.max_pixel_count.y, "Max count pixel y does not match")
+    assert_equal(100, settings.image.pixel_size.x, "Pixel size x does not match")
+    assert_equal(100, settings.image.pixel_size.y, "Pixel size y does not match")
+    assert_equal(:horizontal, settings.scan_type, "Scan type does not match")
+    assert_equal(:left_right, settings.line_scan_direction, "Line scan direction does not match")
+    assert_equal(:fly_back, settings.scan_pattern, "Scan pattern does not match")
+    assert_equal(:top_down, settings.scan_direction, "Scan direction does not match")
+    
+    settings = parser(EXAMPLE_PROCESSED).metadata.scan_settings[:scansettings1]
+    assert_equal(3, settings.image.max_pixel_count.x, "Max count pixel x does not match")
+    assert_equal(3, settings.image.max_pixel_count.y, "Max count pixel y does not match")
+    assert_equal(100, settings.image.pixel_size.x, "Pixel size x does not match")
+    assert_equal(100, settings.image.pixel_size.y, "Pixel size y does not match")
+    assert_equal(:horizontal, settings.scan_type, "Scan type does not match")
+    assert_equal(:left_right, settings.line_scan_direction, "Line scan direction does not match")
+    assert_equal(:fly_back, settings.scan_pattern, "Scan pattern does not match")
+    assert_equal(:top_down, settings.scan_direction, "Scan direction does not match")
+    
+    settings = parser(EXAMPLE_DROBECEK).metadata.scan_settings[:ScanSettings]
+    assert_equal(50, settings.image.max_pixel_count.x, "Max count pixel x does not match")
+    assert_equal(3, settings.image.max_pixel_count.y, "Max count pixel y does not match")
+    assert_equal(100, settings.image.pixel_size.x, "Pixel size x does not match")
+    assert_equal(50, settings.image.pixel_size.y, "Pixel size y does not match")
+    assert_equal(:horizontal, settings.scan_type, "Scan type does not match")
+    assert_equal(:left_right, settings.line_scan_direction, "Line scan direction does not match")
+    assert_equal(:meandering, settings.scan_pattern, "Scan pattern does not match")
+    assert_equal(:bottom_up, settings.scan_direction, "Scan direction does not match")
+  end
+
 end

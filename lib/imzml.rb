@@ -10,6 +10,8 @@ require "imzml/metadata"
 require "imzml/metadata/spectrum"
 require "imzml/metadata/file_description"
 require "imzml/metadata/file_description/file_content"
+require "imzml/metadata/scan_settings"
+require "imzml/metadata/scan_settings/image"
 
 require "imzml/parser"
 
