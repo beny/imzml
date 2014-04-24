@@ -3,74 +3,69 @@ require_relative "helper"
 
 class TestImzml < Minitest::Test
 
-  def setup
-    filepath = File.join(File.dirname(__FILE__), "..", "data", "Example_Continuous.imzML")
+  EXAMPLE_CONTINUOUS = "Example_Continuous.imzML" # default
+  EXAMPLE_PROCESSED = "Example_Processed.imzML"
+  EXAMPLE_DROBECEK = "20130115_lin_range_10row_100vdef_0V_DOBRA2_151822.imzML"
+
+  def parser(filename = EXAMPLE_CONTINUOUS)
+    filepath = File.join(File.dirname(__FILE__), "..", "data", filename)
     @parser = ImzML::Parser.new(filepath)
   end
 
-  def teardown
+  def test_file_content
+    file_content = parser.metadata.file_description.file_content
+    assert_equal("MS:1000128", file_content.spectrum_representation[:accession])
+    assert_equal(:continuous, file_content.binary_type)
+    assert_equal("{554A27FA-79D2-4766-9A2C-862E6D78B1F3}", file_content.uuid)
+    assert_equal("A5BE532D25997B71BE6D20C76561DDC4D5307DDD", file_content.checksum)
 
+    file_content = parser(EXAMPLE_PROCESSED).metadata.file_description.file_content
+    assert_equal("MS:1000128", file_content.spectrum_representation[:accession])
+    assert_equal(:processed, file_content.binary_type)
+    assert_equal("{9D501BDC-5344-4916-B7E9-7E795B02C856}", file_content.uuid)
+    assert_equal("7E8FDB93053915D3EDB51B70AA0619AC209964DF", file_content.checksum)
+    
+    file_content = parser(EXAMPLE_DROBECEK).metadata.file_description.file_content
+    assert_equal("MS:1000128", file_content.spectrum_representation[:accession])
+    assert_equal(:continuous, file_content.binary_type)
+    assert_equal("{00000000-0000-0000-0000-000000000000}", file_content.uuid)
+    assert_equal("", file_content.checksum)
   end
   
-  def test_parse
-  
-  
+  def test_source_file_list
+    skip "not implemented"
   end
-
-  # def test_cv_list_reading
-  #   
-  #   cv_list = @parser.metadata.cv_list
-  #   
-  #   assert_equal(3, cv_list.size)
-  #   assert_equal("MS", cv_list.first.id)
-  #   assert_equal("Imaging MS Ontology", cv_list.last.full_name)
-  #   assert_equal("0.9.1", cv_list.last.version)
-  #   
-  # end
-  # 
-  # def test_cv_file_description_reading
-  #   file_description = @parser.metadata.file_description
-  #   file_content = file_description.file_content
-  #   
-  #   assert_equal(:continuous, file_content.binary_type)
-  #   assert_equal("A5BE532D25997B71BE6D20C76561DDC4D5307DDD", file_content.sha1)
-  #   assert_equal("{554A27FA-79D2-4766-9A2C-862E6D78B1F3}", file_content.uuid)
-  # end
-  # 
-  # def test_scan_setting_reading
-  # 
-  #   metadata = @parser.metadata
-  # 
-  #   assert_equal(3, metadata.pixel_count_x)
-  #   assert_equal(3, metadata.pixel_count_y)
-  #   # assert_equal(100, metadata.pixel_size_x) # FIXME not implemented
-  #   # assert_equal(100, metadata.pixel_size_y) # FIXME not implemented
-  # 
-  # end
-  # 
-  # def test_file_content_reading
-  #   metadata = @parser.metadata
-  # 
-  #   # assert_equal("A5BE532D25997B71BE6D20C76561DDC4D5307DDD", metadata.sha1) # FIXME not implemented
-  #   assert_equal("{554A27FA-79D2-4766-9A2C-862E6D78B1F3}", metadata.uuid)
-  #   assert_equal(ImzML::OBO::IMS::CONTINUOUS, metadata.saving_type)
-  # 
-  # end
-  # 
-  # def test_spectrums_readings
-  #   spectrums = @parser.metadata.spectrums
-  #   
-  #   assert_equal(9, spectrums.size)
-  #   
-  #   filepath = File.join(File.dirname(__FILE__), "..", "data", "Example_Continuous.ibd")
-  #   
-  #   first_spectrum = spectrums.first
-  #   
-  #   intensity_array = first_spectrum.intensity_array(filepath)
-  #   mz_array = first_spectrum.mz_array(filepath)
-  #   
-  #   assert_equal(8399, intensity_array.size)
-  #   assert_equal(8399, mz_array.size)
-  # end
+  
+  def test_contact
+    skip "not implemented"
+  end
+  
+  def test_sample_list
+    
+    samples = parser.metadata.samples
+    assert(samples.key?(:sample1))
+    assert_equal(1, samples[:sample1][:value].to_i)
+    assert_equal("MS:1000001", samples[:sample1][:accession])
+    
+    samples = parser(EXAMPLE_PROCESSED).metadata.samples
+    assert(samples.key?(:sample1))
+    assert_equal(1, samples[:sample1][:value].to_i)
+    assert_equal("MS:1000001", samples[:sample1][:accession])
+  end
+  
+  def test_software_list
+    
+    software = parser.metadata.software
+    assert_equal("Xcalibur", software.first[:id])
+    assert_equal("2.2", software.first[:version])
+    
+    software = parser(EXAMPLE_PROCESSED).metadata.software
+    assert_equal("TMC", software.last[:id])
+    assert_equal("1.1 beta", software.last[:version])
+    
+    software = parser(EXAMPLE_DROBECEK).metadata.software
+    assert_equal("DrobControl", software.last[:id])
+    assert_equal("1.0", software.last[:version])
+  end
 
 end

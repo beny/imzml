@@ -6,12 +6,12 @@ module Obo
       self.tagvalues[ID_TAG].first
     end
     
-    def parent
+    def parent_id
       self.tagvalues[PARENT_TAG].first
     end
   
-    def parent?(parent_id)
-      self.parent == parent_id
+    def parent?(id)
+      self.parent_id == id
     end
     
     private
