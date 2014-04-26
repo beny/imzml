@@ -12,7 +12,6 @@ module ImzML
       Ox.sax_parse(sax, File.open(filepath))
       @metadata = sax.metadata
 
-
     end
 
   end
@@ -25,7 +24,7 @@ module ImzML
       @metadata = Metadata.new
       @stack = Array.new
       @elements = Array.new
-      
+
       # temporary values useful just for data parsing
       @reference_groups = Hash.new
       @obo = Hash.new
@@ -75,7 +74,7 @@ module ImzML
 
       # save file content
       if name == :cvParam && @stack.last == :fileContent
-        
+
         cv = @obo[element[:cvRef]]
         stanza = cv.stanza(element[:accession])
         parent_id = stanza.parent_id
@@ -83,7 +82,7 @@ module ImzML
         # init basic structures
         @metadata.file_description ||= FileDescription.new
         file_content = (@metadata.file_description.file_content ||= FileContent.new)
-        
+
         case element[:cvRef]
         when "MS"
           # save data file content
@@ -91,66 +90,64 @@ module ImzML
             file_content.data_file_contents ||= Hash.new
             (file_content.data_file_contents[parent_id] ||= Array.new) << element
           end
-        
+
           # save spectrum representation
           if parent_id == FileContent::SPECTRUM_REPRESENTATION
             file_content.spectrum_representation = element
           end
-        
+
         when "IMS"
-          # save binary type (cannot look by parent because the OBO file is different and 
+          # save binary type (cannot look by parent because the OBO file is different and
           # the parser doesn't hadle it well, need to first improve the OBO parser)
           if stanza.id == FileContent::CONTINUOUS
             file_content.binary_type = :continuous
           elsif stanza.id == FileContent::PROCESSED
             file_content.binary_type = :processed
           end
-          
+
           # save checksum type
           if stanza.id == FileContent::MD5
             file_content.checksum = element[:value]
           elsif stanza.id == FileContent::SHA1
             file_content.checksum = element[:value]
           end
-          
+
           # save identifier
           if stanza.id == FileContent::UNIVERSALLY_UNIQUE_IDENTIFIER
             file_content.uuid = element[:value]
           end
         end
-        
+
       end
 
       # save reference group for further usage
       if name == :cvParam && @stack.last == :referenceableParamGroup
-        @reference_groups[@elements.last[:id].to_sym] = element
+        (@reference_groups[@elements.last[:id].to_sym] ||= Array.new) << element
       end
-      # p @reference_groups if name == :referenceableParamGroup
-      
+
       # save sample list
       if name == :cvParam && @stack.last == :sample
         samples = (@metadata.samples ||= Hash.new)
         samples[@elements.last[:id].to_sym] = element
       end
-      # p @metadata.samples if name == :sampleList
-      
-      # save software list
+
+      # save software list (raw, without detailed parsing)
       if name == :software && @stack.last == :softwareList
         (@metadata.software ||= Array.new) << element
       end
-      # p @metadata.software if name == :softwareList
-      
+
+      # save scan settings
       if name == :cvParam && @stack.last == :scanSettings
         scan_settings = (@metadata.scan_settings ||= Hash.new)
         setting = (scan_settings[@elements.last[:id].to_sym] ||= ScanSettings.new)
-        
+
         cv = @obo[element[:cvRef]]
         stanza = cv.stanza(element[:accession])
         parent_id = stanza.parent_id
-        
+
         case element[:cvRef]
         when "IMS"
-          
+
           # detect correct line scan direction
           setting.line_scan_direction = case stanza.id
           when ScanSettings::LINE_SCAN_BOTTOM_UP
@@ -164,7 +161,7 @@ module ImzML
           else
             setting.line_scan_direction
           end
-          
+
           # detect scan direction
           setting.scan_direction = case stanza.id
           when ScanSettings::BOTTOM_UP
@@ -178,7 +175,7 @@ module ImzML
           else
             setting.scan_direction
           end
-          
+
           # detect scan pattern
           setting.scan_pattern = case stanza.id
           when ScanSettings::MEANDERING
@@ -192,7 +189,7 @@ module ImzML
           else
             setting.scan_pattern
           end
-          
+
           # detect scan type
           setting.scan_type = case stanza.id
           when ScanSettings::HORIZONTAL_LINE_SCAN
@@ -202,14 +199,14 @@ module ImzML
           else
             setting.scan_type
           end
-          
+
           # detect image properties
           image = (setting.image ||= ImzML::Image.new)
-          
+
           case stanza.id
           when ScanSettings::MAX_DIMENSION_X
             point = (image.max_dimension ||= ImzML::Point.new)
-            point.x = element[:value].to_i  
+            point.x = element[:value].to_i
           when ScanSettings::MAX_DIMENSION_Y
             point = (image.max_dimension ||= ImzML::Point.new)
             point.y = element[:value].to_i
@@ -227,7 +224,7 @@ module ImzML
             point.y = element[:value].to_i
           end
         end
-        
+
         # [
         #   {:cvRef=>"IMS", :accession=>"IMS:1000401", :name=>"top down", :value=>""},
         #   {:cvRef=>"IMS", :accession=>"IMS:1000413", :name=>"flyback", :value=>""},
@@ -244,11 +241,72 @@ module ImzML
         #   {:cvRef=>"MS", :accession=>"MS:1000834", :name=>"matrix solution", :value=>"DHB"}
         # ]
       end
-      # p @metadata.scan_settings if name == :scanSettingsList
+
+      # parse processing methods
+      if name == :cvParam && @stack.last == :processingMethod
+        data_processing = (@metadata.data_processing ||= Hash.new)
+        processing = (data_processing[@elements[-2][:id].to_sym] ||= DataProcessing.new)
+        processing.processing_method = @elements.last
+        (processing.processing_method[:actions] ||= Array.new) << element
+      end
+
+      # save spectrum position info
+      if name == :cvParam && @stack.last == :scan
+        spectrums = (@metadata.spectrums ||= Hash.new)
+        spectrum = (spectrums[@elements[-3][:id].to_sym] ||= Spectrum.new)
+        point = (spectrum.position ||= ImzML::Point.new)
+        
+        point.x = element[:value].to_i if element[:accession] == Spectrum::POSITION_X
+        point.y = element[:value].to_i if element[:accession] == Spectrum::POSITION_Y
+      end
+      
+      # save spectrum binary data info
+      if name == :referenceableParamGroupRef && @stack.last == :binaryDataArray
+        ref_group = @reference_groups[element[:ref].to_sym]
+        
+        # detect type of the binary data info based on referenced group content
+        ref_group.each do |param|
+          # p param
+          @binary_type = case param[:accession]
+          when ImzML::Spectrum::BinaryData::MZ_ARRAY
+            :mz_binary
+          when ImzML::Spectrum::BinaryData::INTENSITY_ARRAY
+            :intensity_binary
+          end
+          
+          break if !@binary_type.nil?
+        end
+        
+      end
+      
+      # save info about binary
+      if name == :cvParam && @stack.last == :binaryDataArray 
+        
+        # TODO dry
+        spectrums = (@metadata.spectrums ||= Hash.new)
+        spectrum = (spectrums[@elements[-3][:id].to_sym] ||= Spectrum.new)
+        mz_binary = (spectrum.mz_binary ||= ImzML::Spectrum::BinaryData.new)
+        intensity_binary = (spectrum.intensity_binary ||= ImzML::Spectrum::BinaryData.new)
+        
+        # convert chosen type to mz_binary/intensity_binary property selector
+        binary_data = spectrum.send(@binary_type.to_s)
+        case element[:accession]
+        when ImzML::Spectrum::BinaryData::EXTERNAL_ARRAY_LENGTH
+          binary_data.length = element[:value].to_i
+        when ImzML::Spectrum::BinaryData::EXTERNAL_OFFSET
+          binary_data.offset = element[:value].to_i
+        when ImzML::Spectrum::BinaryData::EXTERNAL_ENCODED_LENGHT
+          binary_data.encoded_length = element[:value].to_i
+        end 
+      
+      end
+      
+      # p @metadata.spectrums if name == :binaryDataArray
 
       # p "#{name} ended #{element}"
 
     end
+  
   end
 
 end

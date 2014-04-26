@@ -25,4 +25,10 @@ class TestOboExt < Minitest::Test
     assert_equal(6, childrens.size)
   end
   
+  # FIXME this test is just for easier searching in OBO files
+  def test_data_processing_children
+    p @ms_parser.children_of("MS:1000543").map { |x| [x.tagvalues["name"].first, x.id]}
+    
+  end
+  
 end
