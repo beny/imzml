@@ -19,6 +19,18 @@ module ImzML
     
     # All mass spectra and the acquisitions underlying them are described and attached here
     attr_accessor :spectrums
+        
+    # Binary data types, always little endian
+    BINARY_TYPE_8BIT_INTEGER = "IMS:1100000"
+    BINARY_TYPE_16BIT_INTEGER = "IMS:1100001"
+    BINARY_TYPE_32BIT_INTEGER = "MS:1000519"
+    BINARY_TYPE_64BIT_INTEGER = "MS:1000522"
+    BINARY_TYPE_32BIT_FLOAT = "MS:1000521"
+    BINARY_TYPE_64BIT_FLOAT = "MS:1000523"
     
+    # both can have one of the symbols [:int8, :int16, :int32, :int63, :float32, :float64]
+    attr_accessor :mz_binary_data_type
+    attr_accessor :intensity_binary_data_type
+
   end
 end

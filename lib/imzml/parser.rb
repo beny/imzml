@@ -262,10 +262,14 @@ module ImzML
       
       # save spectrum binary data info
       if name == :referenceableParamGroupRef && @stack.last == :binaryDataArray
-        ref_group = @reference_groups[element[:ref].to_sym]
+        group = @reference_groups[element[:ref].to_sym]
+        
+        spectrum = @metadata.spectrums[@elements[-3][:id].to_sym]
+        mz_binary = (spectrum.mz_binary ||= ImzML::Spectrum::BinaryData.new)
+        intensity_binary = (spectrum.intensity_binary ||= ImzML::Spectrum::BinaryData.new)
         
         # detect type of the binary data info based on referenced group content
-        ref_group.each do |param|
+        group.each do |param|
           # p param
           @binary_type = case param[:accession]
           when ImzML::Spectrum::BinaryData::MZ_ARRAY
@@ -277,16 +281,32 @@ module ImzML
           break if !@binary_type.nil?
         end
         
+        # detect binary data type
+        number_type = nil
+        group.each do |param|
+          number_type = case param[:accession]
+          when Metadata::BINARY_TYPE_8BIT_INTEGER
+            :int8
+          when Metadata::BINARY_TYPE_16BIT_INTEGER
+            :int16
+          when Metadata::BINARY_TYPE_32BIT_INTEGER
+            :int32
+          when Metadata::BINARY_TYPE_64BIT_INTEGER
+            :int64
+          when Metadata::BINARY_TYPE_32BIT_FLOAT
+            :float32
+          when Metadata::BINARY_TYPE_64BIT_FLOAT
+            :float64
+          end
+          
+          break if !number_type.nil?
+        end
+        @metadata.send("#{@binary_type.to_s}_data_type=", number_type) if !number_type.nil?
       end
       
       # save info about binary
       if name == :cvParam && @stack.last == :binaryDataArray 
-        
-        # TODO dry
-        spectrums = (@metadata.spectrums ||= Hash.new)
-        spectrum = (spectrums[@elements[-3][:id].to_sym] ||= Spectrum.new)
-        mz_binary = (spectrum.mz_binary ||= ImzML::Spectrum::BinaryData.new)
-        intensity_binary = (spectrum.intensity_binary ||= ImzML::Spectrum::BinaryData.new)
+        spectrum = @metadata.spectrums[@elements[-3][:id].to_sym]
         
         # convert chosen type to mz_binary/intensity_binary property selector
         binary_data = spectrum.send(@binary_type.to_s)

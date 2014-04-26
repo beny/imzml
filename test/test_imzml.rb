@@ -186,5 +186,14 @@ class TestImzml < Minitest::Test
     # assert_equal(11816, spectrum.intensity_binary.encoded_length)
     
   end
+  
+  def test_binary_data_type
+    
+    metadata = parser.metadata
+    
+    assert_equal(:float32, metadata.mz_binary_data_type)
+    assert_equal(:float32, metadata.intensity_binary_data_type)
+    
+  end
 
 end
