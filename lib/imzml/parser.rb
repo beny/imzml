@@ -6,12 +6,22 @@ module ImzML
 
     attr_reader :metadata
 
-    def initialize(filepath)
+    def initialize(filepath, binary_filepath = nil)
 
       sax = ImzML::Sax.new
+      
+      # If no external file were specified, behave like the file has the same name
+      # as the metadata
+      if binary_filepath.nil?
+        name = filepath.split(".")[0..-2].join(".")
+        binary_filepath = [name, "ibd"].join(".")
+      end
+      sax.binary_filepath = binary_filepath      
+
+      # parse the XML
       Ox.sax_parse(sax, File.open(filepath))
       @metadata = sax.metadata
-
+      
     end
 
   end
@@ -19,6 +29,11 @@ module ImzML
   class Sax < ::Ox::Sax
 
     attr_reader :metadata
+    attr_accessor :binary_filepath
+    
+    # Both can have one of the symbols [:int8, :int16, :int32, :int64, :float32, :float64]
+    attr_accessor :mz_binary_data_type
+    attr_accessor :intensity_binary_data_type
 
     def initialize()
       @metadata = Metadata.new
@@ -224,22 +239,7 @@ module ImzML
             point.y = element[:value].to_i
           end
         end
-
-        # [
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000401", :name=>"top down", :value=>""},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000413", :name=>"flyback", :value=>""},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000480", :name=>"horizontal line scan", :value=>""},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000491", :name=>"linescan left right", :value=>""},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000042", :name=>"max count of pixel x", :value=>"3"},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000043", :name=>"max count of pixel y", :value=>"3"},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000044", :name=>"max dimension x", :value=>"300", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000045", :name=>"max dimension y", :value=>"300", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000046", :name=>"pixel size x", :value=>"100", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
-        #   {:cvRef=>"IMS", :accession=>"IMS:1000047", :name=>"pixel size y", :value=>"100", :unitCvRef=>"UO", :unitAccession=>"UO:0000017", :unitName=>"micrometer"},
-        #   {:cvRef=>"MS", :accession=>"MS:1000836", :name=>"dried dropplet", :value=>""},
-        #   {:cvRef=>"MS", :accession=>"MS:1000835", :name=>"matrix solution concentration", :value=>"10"},
-        #   {:cvRef=>"MS", :accession=>"MS:1000834", :name=>"matrix solution", :value=>"DHB"}
-        # ]
+        
       end
 
       # parse processing methods
@@ -285,23 +285,23 @@ module ImzML
         number_type = nil
         group.each do |param|
           number_type = case param[:accession]
-          when Metadata::BINARY_TYPE_8BIT_INTEGER
+          when Spectrum::BinaryData::BINARY_TYPE_8BIT_INTEGER
             :int8
-          when Metadata::BINARY_TYPE_16BIT_INTEGER
+          when Spectrum::BinaryData::BINARY_TYPE_16BIT_INTEGER
             :int16
-          when Metadata::BINARY_TYPE_32BIT_INTEGER
+          when Spectrum::BinaryData::BINARY_TYPE_32BIT_INTEGER
             :int32
-          when Metadata::BINARY_TYPE_64BIT_INTEGER
+          when Spectrum::BinaryData::BINARY_TYPE_64BIT_INTEGER
             :int64
-          when Metadata::BINARY_TYPE_32BIT_FLOAT
+          when Spectrum::BinaryData::BINARY_TYPE_32BIT_FLOAT
             :float32
-          when Metadata::BINARY_TYPE_64BIT_FLOAT
+          when Spectrum::BinaryData::BINARY_TYPE_64BIT_FLOAT
             :float64
           end
           
           break if !number_type.nil?
         end
-        @metadata.send("#{@binary_type.to_s}_data_type=", number_type) if !number_type.nil?
+        self.send("#{@binary_type.to_s}_data_type=", number_type) if !number_type.nil?
       end
       
       # save info about binary
@@ -310,6 +310,8 @@ module ImzML
         
         # convert chosen type to mz_binary/intensity_binary property selector
         binary_data = spectrum.send(@binary_type.to_s)
+        binary_data.filepath = binary_filepath
+        binary_data.type = self.send("#{@binary_type}_data_type")
         case element[:accession]
         when ImzML::Spectrum::BinaryData::EXTERNAL_ARRAY_LENGTH
           binary_data.length = element[:value].to_i

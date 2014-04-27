@@ -4,6 +4,14 @@ module ImzML
     
     class BinaryData
       
+      # Binary data types, always little endian
+      BINARY_TYPE_8BIT_INTEGER = "IMS:1100000"
+      BINARY_TYPE_16BIT_INTEGER = "IMS:1100001"
+      BINARY_TYPE_32BIT_INTEGER = "MS:1000519"
+      BINARY_TYPE_64BIT_INTEGER = "MS:1000522"
+      BINARY_TYPE_32BIT_FLOAT = "MS:1000521"
+      BINARY_TYPE_64BIT_FLOAT = "MS:1000523"
+      
       # A data array of m/z values
       MZ_ARRAY = "MS:1000514"
       
@@ -22,10 +30,47 @@ module ImzML
       attr_accessor :encoded_length
       EXTERNAL_ENCODED_LENGHT = "IMS:1000104"
       
+      # Path to the external binary file
+      attr_accessor :filepath
+      
+      # Binary values type [:int8, :int16, :int32, :int64, :float32, :float64]
+      attr_accessor :type
+      
       # grabs the actual binary data from disk
-      def data
+      def data(cached = true)
         
+        # Return the data from the cache
+        return @cached_data if cached && !@cached_data.nil?
+        
+        # Remove possible data from the cache
+        @cached_data = nil
+        
+        # Switch binary pattern reading type
+        pattern = case type
+        when :int8
+          "C"
+        when :int16
+          "S"
+        when :int32
+          "L"
+        when :int64
+          "Q"
+        when :float32
+          "e"
+        when :float64
+          "E"
+        end
+
+        # Read data based on metadata
+        data = IO.binread(@filepath, @encoded_length.to_i, @offset.to_i).unpack("#{pattern}*")
+        
+        # Save data only if user want's to cache it, saving take some CPU
+        @cached_data = data if cached
       end
+      
+      private
+      
+      attr_accessor :cached_data
       
     end
     
@@ -45,6 +90,36 @@ module ImzML
     #
     # Represented by class BinaryData
     attr_accessor :intensity_binary
+    
+    def intensity(at, interval)
+      
+      # read whole the binary data
+      mz_array = mz_binary.data
+      intensity_array = intensity_binary.data
+      
+      default_from, default_to = mz_array.first, mz_array.first
+      
+      # find designated intensity
+      if !at
+        from = default_from
+        to = default_to
+      else
+        from = at - interval
+        from = default_from if from < 0
+        to = at + interval
+        to = default_to if to > mz_array.last
+      end
+      
+      # find values in mz array
+      low_value = mz_array.binary_search(from, false)
+      low_index = mz_array.index(low_value)
+      high_value = mz_array.binary_search(to)
+      high_index = mz_array.index(high_value)
+  
+      # sum all values in subarray
+      intensity_array[low_index..high_index].inject{|sum, x| sum + x}
+      
+    end
 
     
   end

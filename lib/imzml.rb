@@ -4,6 +4,7 @@ require "obo_ext/parser"
 require "obo_ext/stanza"
 
 require "core_ext/string"
+require "core_ext/array"
 
 require "imzml/obo"
 require "imzml/metadata"
