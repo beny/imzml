@@ -37,14 +37,6 @@ class TestImzml < Minitest::Test
     # assert_equal("", file_content.checksum)
   end
 
-  def test_source_file_list
-    skip "not implemented"
-  end
-
-  def test_contact
-    skip "not implemented"
-  end
-
   def test_sample_list
 
     samples = parser.metadata.samples
@@ -103,10 +95,6 @@ class TestImzml < Minitest::Test
     # assert_equal(:left_right, settings.line_scan_direction, "Line scan direction does not match")
     # assert_equal(:meandering, settings.scan_pattern, "Scan pattern does not match")
     # assert_equal(:bottom_up, settings.scan_direction, "Scan direction does not match")
-  end
-
-  def test_instrument_configurations
-    skip "not implemented"
   end
 
   def test_data_processing_list
@@ -187,27 +175,18 @@ class TestImzml < Minitest::Test
 
   end
 
-  def test_binary_data_type
-
-    metadata = parser.metadata
-
-    assert_equal(:float32, metadata.mz_binary_data_type)
-    assert_equal(:float32, metadata.intensity_binary_data_type)
-
-  end
-
   def test_binary_reading
 
     spectrum = parser.metadata.spectrums[:"Scan=1"]
-    
+
     intensity = spectrum.intensity_binary.data
     mz = spectrum.mz_binary.data
-    
+
     assert_in_delta(100.083336, mz.first, 0.0001)
     assert_in_delta(0, intensity.first, 0.0001)
     assert_in_delta(0.031307, intensity[96], 0.0001)
   end
-  
+
   def test_intensity_sum
     spectrum = parser.metadata.spectrums[:"Scan=1"]
     assert_in_delta(0.987261, spectrum.intensity(108.166, 0.084), 0.0001)
