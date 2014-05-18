@@ -36,7 +36,7 @@ module ImzML
       # Binary values type [:int8, :int16, :int32, :int64, :float32, :float64]
       attr_accessor :type
 
-      # grabs the actual binary data from disk
+      # Grabs the actual binary data from disk
       def data(cached = false)
 
         # Return the data from the cache
@@ -65,7 +65,11 @@ module ImzML
         data = IO.binread(@filepath, @encoded_length.to_i, @offset.to_i).unpack("#{pattern}*")
 
         # Save data only if user want's to cache it, saving take some CPU
-        @cached_data = data if cached
+        if cached
+          @cached_data = data
+        else
+          data
+        end
       end
 
       private
@@ -91,7 +95,7 @@ module ImzML
     # Represented by class BinaryData
     attr_accessor :intensity_binary
 
-    def intensity(at, interval, cached)
+    def intensity(at, interval, cached = false)
 
       # read whole the binary data
       mz_array = mz_binary.data(cached)
