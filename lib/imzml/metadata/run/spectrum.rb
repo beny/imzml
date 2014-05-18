@@ -37,7 +37,7 @@ module ImzML
       attr_accessor :type
 
       # grabs the actual binary data from disk
-      def data(cached = true)
+      def data(cached = false)
 
         # Return the data from the cache
         return @cached_data if cached && !@cached_data.nil?
@@ -91,11 +91,11 @@ module ImzML
     # Represented by class BinaryData
     attr_accessor :intensity_binary
 
-    def intensity(at, interval)
+    def intensity(at, interval, cached)
 
       # read whole the binary data
-      mz_array = mz_binary.data
-      intensity_array = intensity_binary.data
+      mz_array = mz_binary.data(cached)
+      intensity_array = intensity_binary.data(cached)
 
       default_from, default_to = mz_array.first, mz_array.first
 
