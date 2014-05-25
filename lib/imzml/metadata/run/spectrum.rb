@@ -95,38 +95,6 @@ module ImzML
     # Represented by class BinaryData
     attr_accessor :intensity_binary
 
-    def intensity(at, interval, cached = false)
-
-      # read whole the binary data
-      mz_array = mz_binary.data(cached)
-      intensity_array = intensity_binary.data(cached)
-
-      default_from, default_to = mz_array.first, mz_array.first
-
-      from = default_from
-      to = default_to
-
-      # find designated intensity
-      if at
-        from = at - interval
-        from = default_from if from < 0
-        to = at + interval
-        to = default_to if to > mz_array.last
-      end
-
-      # find values in mz array
-      low_value = mz_array.bsearch { |x| x >= from }
-      low_index = mz_array.index(low_value)
-      high_value = mz_array.bsearch { |x| x >= to }
-      high_index = mz_array.index(high_value)
-
-      # sum all values in subarray
-      sum = intensity_array[low_index..high_index].inject{|sum, x| sum + x}
-
-      sum
-    end
-
-
   end
 
 end
