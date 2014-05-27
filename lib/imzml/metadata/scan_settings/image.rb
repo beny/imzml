@@ -1,5 +1,6 @@
 module ImzML
 
+  # Class representing image specific metadata.
   class Image
 
     # Point

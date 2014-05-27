@@ -1,5 +1,6 @@
 module ImzML
 
+  # Deprecated: Class with codes from OBO specification.
   module OBO
 
     module MS
@@ -19,7 +20,7 @@ module ImzML
       PIXEL_SIZE = "IMS:1000046"
       IMAGE_SHAPE = "IMS:1000047"
       UNIVERSALLY_UNIQUE_IDENTIFIER = "IMS:1000080"
-      
+
       SPECTRUM_POSITION = "IMS:1000005"
       SPECTRUM_POSITION_X = "IMS:1000050"
       SPECTRUM_POSITION_Y = "IMS:1000051"

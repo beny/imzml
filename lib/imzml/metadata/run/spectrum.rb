@@ -1,7 +1,11 @@
 module ImzML
 
+  # Class representing spectrum element
   class Spectrum
 
+    # Special class for representing binary data. Instance can contain m/z
+    # values or intensity values. Class has ability to cache read data right
+    # into the memory.
     class BinaryData
 
       # Binary data types, always little endian

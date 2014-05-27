@@ -1,12 +1,13 @@
 module ImzML
-  
+
+  # Class representing dataProcessingList elements.
   class DataProcessing
-    
-    # Description of the way in which a particular software was used
-    # 
-    # Represent by Hash with keys [order, softwareRef, actions]  
+
+    # Description of the way in which a particular software was used.
+    #
+    # Represent by Hash with keys [order, softwareRef, actions]
     attr_accessor :processing_method
-    
+
     DEISOTOPING = "MS:1000033"
     CHARGE_DECONVOLUTION = "MS:1000034"
     PEAK_PICKING = "MS:1000035"
@@ -18,7 +19,7 @@ module ImzML
     INTENSITY_NORMALIZATION = "MS:1001484"
     MZ_CALIBRATION = "MS:1001485"
     DATA_FILTERING = "MS:1001486"
-    
+
   end
-  
+
 end

@@ -1,5 +1,6 @@
 module ImzML
 
+  # Class representing elements from scanSettingsList.
   class ScanSettings
 
     # Description in wich direction the lines of the sample were scanned

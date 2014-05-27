@@ -2,35 +2,46 @@ require "ox"
 
 module ImzML
 
+  # Parser class which handles the input to the SAX class and returns correct
+  # output.
   class Parser
 
     attr_reader :metadata
 
+    # Initizalize the parser itself.
+    #
+    # filepath - String path to the imzML file
+    # binary_filepath - String path to the ibd, if not provided, same name as
+    #                   in filepath is used
     def initialize(filepath, binary_filepath = nil)
 
       sax = ImzML::Sax.new
-      
+
       # If no external file were specified, behave like the file has the same name
       # as the metadata
       if binary_filepath.nil?
         name = filepath.split(".")[0..-2].join(".")
         binary_filepath = [name, "ibd"].join(".")
       end
-      sax.binary_filepath = binary_filepath      
+      sax.binary_filepath = binary_filepath
 
       # parse the XML
       Ox.sax_parse(sax, File.open(filepath))
       @metadata = sax.metadata
-      
+
     end
 
   end
 
+  # Customized SAX parser which inherits from Ox::Sax base class.
   class Sax < ::Ox::Sax
 
+    # Instance of object ImzML::Metadata
     attr_reader :metadata
+
+    # String path to the binary file
     attr_accessor :binary_filepath
-    
+
     # Both can have one of the symbols [:int8, :int16, :int32, :int64, :float32, :float64]
     attr_accessor :mz_binary_data_type
     attr_accessor :intensity_binary_data_type
@@ -45,6 +56,9 @@ module ImzML
       @obo = Hash.new
     end
 
+    # Method called when parser enters the element
+    #
+    # name - Symbol name of the starting element
     def start_element(name)
       # p "#{@stack.last} #{@elements.last}"
       @stack.push(name)
@@ -60,12 +74,19 @@ module ImzML
       end
     end
 
+    # Method called when parser enters the attribute of an element.
+    #
+    # name - Symbol name of the attribute
+    # str - String value of the attribute
     def attr(name, str)
       element = @elements.last
       return if element.nil? # skip attributes without correct elements (like <?xml ...)
       element[name] = str
     end
 
+    # Method called when parser ends element.
+    #
+    # name - Symbol name of ending element
     def end_element(name)
       @stack.pop
       element = @elements.pop
@@ -239,7 +260,7 @@ module ImzML
             point.y = element[:value].to_i
           end
         end
-        
+
       end
 
       # parse processing methods
@@ -255,19 +276,19 @@ module ImzML
         spectrums = (@metadata.spectrums ||= Hash.new)
         spectrum = (spectrums[@elements[-3][:id].to_sym] ||= Spectrum.new)
         point = (spectrum.position ||= ImzML::Point.new)
-        
+
         point.x = element[:value].to_i if element[:accession] == Spectrum::POSITION_X
         point.y = element[:value].to_i if element[:accession] == Spectrum::POSITION_Y
       end
-      
+
       # save spectrum binary data info
       if name == :referenceableParamGroupRef && @stack.last == :binaryDataArray
         group = @reference_groups[element[:ref].to_sym]
-        
+
         spectrum = @metadata.spectrums[@elements[-3][:id].to_sym]
         mz_binary = (spectrum.mz_binary ||= ImzML::Spectrum::BinaryData.new)
         intensity_binary = (spectrum.intensity_binary ||= ImzML::Spectrum::BinaryData.new)
-        
+
         # detect type of the binary data info based on referenced group content
         group.each do |param|
           # p param
@@ -277,10 +298,10 @@ module ImzML
           when ImzML::Spectrum::BinaryData::INTENSITY_ARRAY
             :intensity_binary
           end
-          
+
           break if !@binary_type.nil?
         end
-        
+
         # detect binary data type
         number_type = nil
         group.each do |param|
@@ -298,16 +319,16 @@ module ImzML
           when Spectrum::BinaryData::BINARY_TYPE_64BIT_FLOAT
             :float64
           end
-          
+
           break if !number_type.nil?
         end
         self.send("#{@binary_type.to_s}_data_type=", number_type) if !number_type.nil?
       end
-      
+
       # save info about binary
-      if name == :cvParam && @stack.last == :binaryDataArray 
+      if name == :cvParam && @stack.last == :binaryDataArray
         spectrum = @metadata.spectrums[@elements[-3][:id].to_sym]
-        
+
         # convert chosen type to mz_binary/intensity_binary property selector
         binary_data = spectrum.send(@binary_type.to_s)
         binary_data.filepath = binary_filepath
@@ -319,16 +340,16 @@ module ImzML
           binary_data.offset = element[:value].to_i
         when ImzML::Spectrum::BinaryData::EXTERNAL_ENCODED_LENGHT
           binary_data.encoded_length = element[:value].to_i
-        end 
-      
+        end
+
       end
-      
+
       # p @metadata.spectrums if name == :binaryDataArray
 
       # p "#{name} ended #{element}"
 
     end
-  
+
   end
 
 end
